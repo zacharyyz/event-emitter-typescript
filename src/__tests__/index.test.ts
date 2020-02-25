@@ -8,7 +8,7 @@ describe('Emitter', () => {
   it('should emit and receive an event', () => {
     const emitter = new Emitter();
 
-    let result: string;
+    let result;
 
     // Add event listener
     emitter.on('message', message => (result = message));
