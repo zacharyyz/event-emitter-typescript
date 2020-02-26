@@ -1,3 +1,10 @@
+type Fns = (...args: any) => any;
+
+interface Event {
+  type: string;
+  function: Fns;
+}
+
 /**
  * @constructor
  * @this Emitter
@@ -8,11 +15,11 @@ class Emitter {
    * @type {Array}
    * @private
    */
-  private handlers: Array<any> = [];
+  private handlers: Event[] = [];
 
   constructor() {
     if (!(this instanceof Emitter)) {
-      throw new TypeError("Emitter is not a function");
+      throw new TypeError('Emitter is not a function');
     }
   }
 
@@ -22,7 +29,11 @@ class Emitter {
    * @param {function} callback function
    */
   addEventListener = <T extends (...args: any) => any>(type: string, fn: T) => {
-    this.handlers.push([type, fn]);
+    const event = {
+      type,
+      function: fn,
+    };
+    this.handlers.push(event);
   };
 
   /**
@@ -30,12 +41,9 @@ class Emitter {
    * @param {string} event type
    * @param {function} callback function
    */
-  removeEventListener = <T extends (...args: any) => any>(
-    type: string,
-    fn: T | boolean = true
-  ) => {
+  removeEventListener = <T extends (...args: any) => any>(type: string, fn: T | boolean = true) => {
     this.handlers = this.handlers.filter(
-      handler => !(handler[0] == type && (fn == true ? true : handler[1] == fn))
+      handler => !(handler.type === type && (fn === true ? true : handler.function === fn)),
     );
   };
 
@@ -46,10 +54,8 @@ class Emitter {
    */
   dispatchEvent = (type: string, data: any) => {
     this.handlers
-      .filter(handler =>
-        new RegExp("^" + handler[0].split("*").join(".*") + "$").test(type)
-      )
-      .forEach(handler => handler[1](data, type));
+      .filter(handler => new RegExp(`^${handler.type.split('*').join('.*')}$`).test(type))
+      .forEach(handler => handler.function(data, type));
   };
 
   /**
@@ -60,10 +66,8 @@ class Emitter {
     if (!type) {
       return this.handlers;
     }
-    let fns: Array<Function> = [];
-    this.handlers
-      .filter(handler => handler[0] == type)
-      .forEach(handler => fns.push(handler[1]));
+    const fns: Fns[] = [];
+    this.handlers.filter(handler => handler.type === type).forEach(handler => fns.push(handler.function));
 
     return fns;
   };
@@ -74,7 +78,7 @@ class Emitter {
    */
   clearEventListeners = (type?: string) => {
     if (type) {
-      this.handlers = this.handlers.filter(handler => !(handler[0] == type));
+      this.handlers = this.handlers.filter(handler => handler.type !== type);
     } else {
       this.handlers = [];
     }
@@ -116,11 +120,11 @@ class Emitter {
    */
   clear = (type: string) => {
     this.clearEventListeners(type);
-    return this;
+    return this; /* chain */
   };
 
   /**
-   *
+   * Shortcut for getEventListeners
    * @param {string} [type]
    */
   list = (type: string) => this.getEventListeners(type);
